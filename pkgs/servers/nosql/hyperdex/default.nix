@@ -46,6 +46,8 @@ stdenv.mkDerivation rec {
     pandoc
   ];
 
+  propagatedUserEnvPkgs = [ replicant ];
+
   meta = with stdenv.lib; {
     description = "A scalable, searchable key-value store";
     homepage = http://hyperdex.org;
