@@ -1226,12 +1226,11 @@ in {
   };
 
   apscheduler = buildPythonPackage rec {
-    name = "APScheduler-3.0.4";
-    disabled = !isPy27;
+    name = "APScheduler-3.3.1";
 
     src = pkgs.fetchurl {
       url = "mirror://pypi/A/APScheduler/${name}.tar.gz";
-      sha256 = "1ljjhn6cv8b1pccsi3mgc887ypi2vim317r9p0zh0amd0bhkk6wb";
+      sha256 = "f68874dff1bdffcc6ce3adb7840c1e4d162c609a3e3f831351df30b75732767b";
     };
 
     buildInputs = with self; [
@@ -1241,7 +1240,6 @@ in {
       twisted
       mock
       trollius
-      funcsigs
       gevent
     ];
 
@@ -1250,6 +1248,7 @@ in {
       pytz
       tzlocal
       futures
+      funcsigs
     ];
 
     meta = with pkgs.stdenv.lib; {
