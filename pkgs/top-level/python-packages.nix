@@ -1241,6 +1241,7 @@ in {
       mock
       trollius
       gevent
+      setuptools_scm
     ];
 
     propagatedBuildInputs = with self; [
@@ -3800,7 +3801,7 @@ in {
 
     # wsgiserver.ssl_pyopenssl is broken on py3k.
     doCheck = !isPy3k;
-    buildInputs = with self; [ pytest ];
+    buildInputs = with self; [ pytest setuptools_scm pytestrunner ];
     propagatedBuildInputs = with self; [ six ];
 
     meta = {
@@ -9591,6 +9592,8 @@ in {
       sha256 = "a2fdac9fe8a9dcf02b438201d6ce0b7be78f85dc6492d03edfb89be2adf489de";
     };
 
+    buildInputs = with self; [ nose ];
+
     meta = {
       homepage = "https://github.com/lepture/safe";
       license = licenses.bsd3;
@@ -11601,7 +11604,7 @@ in {
       sha256 = "3bb76cc156b9a09da62396d82b29fa31e4f27cccf79528538fe7155cf2785593";
     };
 
-    buildInputs = with self; [ nose blinker tzlocal ];
+    buildInputs = with self; [ nose blinker tzlocal mock rednose ];
     propagatedBuildInputs = with self; [ flask six jsonschema pytz aniso8601 flask-restful ];
 
     meta = {
@@ -12623,6 +12626,7 @@ in {
 
     # Failing tests.
     doCheck = false;
+    buildInputs = with self; [ pytestrunner ];
     propagatedBuildInputs = with self; [
       dateutil babelfish rebulk
     ];
@@ -12645,7 +12649,7 @@ in {
 
     # Some kind of trickery with imports that doesn't work.
     doCheck = false;
-    buildInputs = with self; [ pytest ];
+    buildInputs = with self; [ pytest pytestrunner ];
     propagatedBuildInputs = with self; [ six regex ];
 
     meta = {
@@ -12787,11 +12791,11 @@ in {
   });
 
   httpbin = buildPythonPackage rec {
-    name = "httpbin-0.2.0";
+    name = "httpbin-0.5.0";
 
     src = pkgs.fetchurl {
       url = "mirror://pypi/h/httpbin/${name}.tar.gz";
-      sha256 = "6b57f563900ecfe126015223a259463848daafbdc2687442317c0992773b9054";
+      sha256 = "79fbc5d27e4194ea908b0fa18e09a59d95d287c91667aa69bcd010342d1589b5";
     };
 
     propagatedBuildInputs = with self; [ flask markupsafe decorator itsdangerous six ];
@@ -16188,6 +16192,23 @@ in {
     };
 
     buildInputs = with self; [ nose ];
+  };
+
+  rednose = buildPythonPackage rec {
+    name = "rednose-${version}";
+    version = "1.2.1";
+
+    src = pkgs.fetchurl {
+      url = "mirror://pypi/r/rednose/${name}.tar.gz";
+      sha256 = "0b0bsna217lr1nykyhl5fgjly15zhdvqd4prg4wy1zrgfv7al6m0";
+    };
+
+    meta = {
+      description = "A python nose plugin adding color to console results.";
+    };
+
+    buildInputs = with self; [ nose six ];
+    propagatedBuildInputs = with self; [ colorama termstyle ];
   };
 
   notebook = buildPythonPackage rec {
@@ -26822,6 +26843,50 @@ in {
       repositories.git = git://github.com/saghul/pyuv.git;
       license = licenses.mit;
     };
+  };
+
+  pytest-httpbin = buildPythonPackage rec {
+    name = "pytest-httpbin-${version}";
+    version = "0.2.3";
+
+    src = pkgs.fetchurl {
+      url = "mirror://pypi/p/pytest-httpbin/${name}.tar.gz";
+      sha256 = "c5b698dfa474ffc9caebcb35e34346b753eb226aea5c2e1b69fefedbcf161bf8";
+    };
+
+    # PyPI releases don't include tests and there isn't a git tag for us to
+    # fetch sources with tests from.
+    doCheck = false;
+    checkPhase = "py.test -v -s";
+    buildInputs = with self; [ pytest requests ];
+    propagatedBuildInputs = with self; [ flask decorator httpbin six ];
+  };
+
+  vcrpy = buildPythonPackage rec {
+    name = "vcrpy-${version}";
+    version = "1.10.5";
+
+    src = pkgs.fetchurl {
+      url = "mirror://pypi/v/vcrpy/${name}.tar.gz";
+      sha256 = "c70464484e036e6e9339df433bca813174e14828e42886622d416e2fcd63768a";
+    };
+
+    # These tests try to use the network to reach external services.
+    patchPhase = ''
+      rm tests/unit/test_stubs.py tests/integration/test_wild.py
+    '';
+    checkPhase = ''
+      cat $(python -c 'import requests; print requests.certs.where()') \
+          $(python -m pytest_httpbin.certs) > certs.pem
+      export REQUESTS_CA_BUNDLE=certs.pem
+      py.test
+    '';
+    buildInputs = with self; [ pytest pytest-httpbin mock requests2 ];
+    propagatedBuildInputs = with self; [ six wrapt pyyaml ]
+      ++ (if isPy27 then [ contextlib2 mock ] else [ yarl ]);
+    # 2.6 and older require backport_collections which isn't packaged, and
+    # 3.3 isn't supported at all.
+    disabled = (pythonOlder "2.7") || isPy33;
   };
 
   virtkey = buildPythonPackage rec {
